@@ -25,6 +25,8 @@ const PatientAnalysis = () => {
     name: '',
     age: '',
     gender: '',
+    phone: '',
+    email: '',
     patientData: '',
     fileMetadata: null as {
       fileName: string;
@@ -121,6 +123,8 @@ const PatientAnalysis = () => {
         name: patientInfo.name,
         age: patientInfo.age,
         gender: patientInfo.gender,
+        phone: patientInfo.phone,
+        email: patientInfo.email,
         source: patientInfo.fileMetadata ? patientInfo.fileMetadata.fileName : 'Manual Entry'
       };
 
@@ -280,6 +284,34 @@ const PatientAnalysis = () => {
       yPos += 10;
 
       pdf.setFontSize(12);
+      pdf.setFont(undefined, 'normal');
+
+      // Add Name, Phone, Email
+      if (patientInfo.name) {
+        pdf.text(`Name: ${patientInfo.name}`, 20, yPos);
+        yPos += 7;
+      }
+      if (patientInfo.phone) {
+        pdf.text(`Phone: ${patientInfo.phone}`, 20, yPos);
+        yPos += 7;
+      }
+      if (patientInfo.email) {
+        pdf.text(`Email: ${patientInfo.email}`, 20, yPos);
+        yPos += 7;
+      }
+      if (patientInfo.age) {
+        pdf.text(`Age: ${patientInfo.age}`, 20, yPos);
+        yPos += 7;
+      }
+      if (patientInfo.gender) {
+        pdf.text(`Gender: ${patientInfo.gender}`, 20, yPos);
+        yPos += 7;
+      }
+
+      yPos += 5;
+      pdf.setFont(undefined, 'bold');
+      pdf.text('Medical Data:', 20, yPos);
+      yPos += 7;
       pdf.setFont(undefined, 'normal');
 
       // Format patient info
@@ -547,18 +579,80 @@ const PatientAnalysis = () => {
 
               <TabsContent value="manual">
                 <form onSubmit={handleAnalysis} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Patient Name</Label>
+                      <Input
+                        id="name"
+                        placeholder="John Doe"
+                        value={patientInfo.name}
+                        onChange={(e) => setPatientInfo({ ...patientInfo, name: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone Number</Label>
+                      <Input
+                        id="phone"
+                        placeholder="+91 98765 43210"
+                        value={patientInfo.phone || ''}
+                        onChange={(e) => setPatientInfo({ ...patientInfo, phone: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email Address</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="john@example.com"
+                        value={patientInfo.email || ''}
+                        onChange={(e) => setPatientInfo({ ...patientInfo, email: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="age">Age</Label>
+                        <Input
+                          id="age"
+                          placeholder="30"
+                          value={patientInfo.age}
+                          onChange={(e) => setPatientInfo({ ...patientInfo, age: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="gender">Gender</Label>
+                        <Input
+                          id="gender"
+                          placeholder="Male/Female"
+                          value={patientInfo.gender}
+                          onChange={(e) => setPatientInfo({ ...patientInfo, gender: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
                   <div>
                     <div className="flex justify-between items-center mb-2">
-                      <Label htmlFor="patientData">Patient Data</Label>
+                      <Label htmlFor="patientData">Symptoms & Medical History</Label>
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={() => setPatientInfo({ ...patientInfo, patientData: '' })}
+                        onClick={() => setPatientInfo({
+                          name: '',
+                          age: '',
+                          gender: '',
+                          phone: '',
+                          email: '',
+                          patientData: '',
+                          fileMetadata: null
+                        })}
                         className="text-xs"
                       >
                         <RotateCcw className="h-3 w-3 mr-1" />
-                        Clear
+                        Clear All
                       </Button>
                     </div>
                     <Textarea
@@ -566,20 +660,15 @@ const PatientAnalysis = () => {
                       value={patientInfo.patientData}
                       onChange={(e) => setPatientInfo({ ...patientInfo, patientData: e.target.value })}
                       required
-                      className="min-h-[300px] font-mono text-sm"
-                      placeholder="Enter or paste all patient data here, including:
-- Patient name, age, and gender
+                      className="min-h-[200px] font-mono text-sm"
+                      placeholder="Enter other patient details here:
 - Symptoms
 - Medical history
 - Current medications
 - Allergies
 - Lab results
-- Vital signs
-- Any other relevant information"
+- Vital signs"
                     />
-                    <p className="text-xs text-gray-500 mt-2">
-                      Enter all patient information in this field. You can copy and paste from electronic health records or other documents.
-                    </p>
                   </div>
 
                   <Button type="submit" className="w-full" disabled={loading}>

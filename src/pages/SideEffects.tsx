@@ -27,8 +27,6 @@ const SideEffects = () => {
 
   const getDrugInfo = async (drugName: string) => {
     try {
-      console.log(`Fetching information for drug: ${drugName}`);
-
       const systemMessage = `You are a medical AI assistant specialized in pharmaceutical knowledge. 
       Provide detailed, accurate information about medications, including their clinical uses, mechanisms, 
       and safety profiles. Format your response in JSON.`;
@@ -220,7 +218,6 @@ const SideEffects = () => {
       if (response && response.aiAnalysis) {
         // Convert PathologyAI response to expected format
         const result = response.aiAnalysis.interactions || [];
-        console.log("Interaction results:", result);
         setInteractions(Array.isArray(result) ? result : [result]);
         setShowResults(true);
         setProgress(100);

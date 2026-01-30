@@ -88,6 +88,12 @@ exports.generateReport = async (req, res) => {
                 "completeness": "High/Medium/Low",
                 "missingInformation": ["List of missing info"],
                 "suggestedTests": ["Suggested additional tests"]
+            },
+            "riskAssessment": {
+                "diabetes": { "risk": "LOW/MODERATE/HIGH", "score": 0-100, "trend": "STABLE/RISING/IMPROVING/DECLINING", "nextScreening": "Timeframe" },
+                "cardiovascular": { "risk": "LOW/MODERATE/HIGH", "score": 0-100, "trend": "STABLE/RISING/IMPROVING/DECLINING", "nextScreening": "Timeframe" },
+                "kidney": { "risk": "LOW/MODERATE/HIGH", "score": 0-100, "trend": "STABLE/RISING/IMPROVING/DECLINING", "nextScreening": "Timeframe" },
+                "liver": { "risk": "LOW/MODERATE/HIGH", "score": 0-100, "trend": "STABLE/RISING/IMPROVING/DECLINING", "nextScreening": "Timeframe" }
             }
         }
         Strictly adhere to this JSON format and ensure all arrays are populated if data allows.`;

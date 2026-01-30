@@ -1,12 +1,9 @@
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
 
 const PublicRoute = () => {
   const { user, loading } = useAuth();
-  const location = useLocation();
-
-  console.log("PublicRoute rendering", { user, path: location.pathname });
 
   // Show loading spinner while checking authentication
   if (loading) {
@@ -19,12 +16,10 @@ const PublicRoute = () => {
 
   // If the user is already authenticated, redirect them to the home page
   if (user) {
-    console.log("User is authenticated, redirecting to /home");
     return <Navigate to="/home" replace />;
   }
 
   // Render child routes for unauthenticated users
-  console.log("User is not authenticated, rendering public route");
   return <Outlet />;
 };
 

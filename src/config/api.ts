@@ -17,9 +17,3 @@ export const API_CONFIG = {
   TEMPERATURE: 0.3
 };
 
-// Log the API key status (remove this in production)
-console.log("Groq API Key Status:", {
-  isPresent: !!API_CONFIG.GROQ_API_KEY,
-  length: API_CONFIG.GROQ_API_KEY.length
-});
-

@@ -14,24 +14,67 @@ const DoctorDashboard = () => {
   const [view, setView] = React.useState<'list' | 'detail'>('list');
   const [selectedRecord, setSelectedRecord] = React.useState<any>(null);
   const [doctors, setDoctors] = React.useState<any[]>([]);
+  const [patients, setPatients] = React.useState<any[]>([]); // Add patients state
   const [doctorId, setDoctorId] = React.useState('');
   const [isEditingPlan, setIsEditingPlan] = React.useState(false);
   const [analysisData, setAnalysisData] = React.useState<any>(null);
   const [records, setRecords] = React.useState<any[]>([]);
   const [isGeneratingPlan, setIsGeneratingPlan] = React.useState(false);
 
+  // Helper function to get patient name by ID
+  const getPatientName = (patientId: string) => {
+    const patient = patients.find(p => p._id === patientId);
+    return patient ? patient.name : `Patient ${patientId.slice(-4)}`;
+  };
+
+  // Helper function to get patient info by ID
+  const getPatientInfo = (patientId: string) => {
+    const patient = patients.find(p => p._id === patientId);
+    return patient || { name: `Patient ${patientId.slice(-4)}`, email: 'Unknown', profile: {} };
+  };
+
   // Render analysis block
   const renderAnalysis = () => {
     if (!analysisData) return null;
     const { blockchainRecord, analysis, patientInfo } = analysisData;
+    
+    // Try to get patient name from our patients list if patientInfo doesn't have it
+    const patientName = patientInfo?.name || 
+                       (patientInfo?.patientId ? getPatientName(patientInfo.patientId) : 'Unknown Patient');
+    
     return (
       <GlassCard className="mt-6">
-        <h3 className="text-lg font-semibold mb-2">Minted Record Overview</h3>
-        <p className="text-sm">Record ID: {blockchainRecord?.recordId || 'N/A'}</p>
-        <p className="text-sm">Patient: {patientInfo?.name || 'Unknown'}</p>
-        <pre className="mt-2 text-xs bg-gray-100 p-2 rounded overflow-x-auto">
-          {JSON.stringify(analysis, null, 2)}
-        </pre>
+        <h3 className="text-lg font-semibold mb-2">Recent Analysis Overview</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+          <div>
+            <p className="text-xs text-gray-500 uppercase">Record ID</p>
+            <p className="text-sm font-mono">{blockchainRecord?.recordId?.slice(-8) || 'N/A'}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 uppercase">Patient</p>
+            <p className="text-sm font-semibold">{patientName}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 uppercase">Status</p>
+            <p className="text-sm">
+              <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">
+                Completed
+              </span>
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 uppercase">Timestamp</p>
+            <p className="text-sm">{new Date().toLocaleDateString()}</p>
+          </div>
+        </div>
+        <details className="mt-4">
+          <summary className="cursor-pointer text-sm text-blue-600 hover:text-blue-800">
+            View Raw Analysis Data
+          </summary>
+          <pre className="mt-2 text-xs bg-gray-100 p-2 rounded overflow-x-auto max-h-40">
+            {JSON.stringify(analysis, null, 2)}
+          </pre>
+        </details>
       </GlassCard>
     );
   };
@@ -51,23 +94,31 @@ const DoctorDashboard = () => {
     }
   }, []);
 
-  // Fetch doctors on mount
+  // Fetch doctors and patients on mount
   React.useEffect(() => {
-    const fetchDoctors = async () => {
-      // If logged in as doctor, use own ID
-      if (user && user.role === 'doctor') {
-        setDoctorId(user.uid);
-        return;
-      }
+    const fetchDoctorsAndPatients = async () => {
+      try {
+        // Fetch patients for name resolution
+        const patientsData = await pathologyAI.getPatients();
+        setPatients(patientsData);
 
-      // Fallback for demo / lab admin view
-      const docs = await pathologyAI.getDoctors();
-      setDoctors(docs);
-      if (docs.length > 0) {
-        setDoctorId(docs[0]._id);
+        // If logged in as doctor, use own ID
+        if (user && user.role === 'doctor') {
+          setDoctorId(user.uid);
+          return;
+        }
+
+        // Fallback for demo / lab admin view
+        const docs = await pathologyAI.getDoctors();
+        setDoctors(docs);
+        if (docs.length > 0) {
+          setDoctorId(docs[0]._id);
+        }
+      } catch (error) {
+        console.error('Error fetching doctors and patients:', error);
       }
     };
-    fetchDoctors();
+    fetchDoctorsAndPatients();
   }, [user]);
 
   // Auto-fetch records every 5 seconds
@@ -157,27 +208,48 @@ const DoctorDashboard = () => {
                 </div>
               ) : (
                 <div className="divide-y">
-                  {records.map((rec) => (
-                    <div key={rec.recordId} className="py-4 flex items-center justify-between hover:bg-gray-50 px-2 rounded-lg transition-colors cursor-pointer" onClick={() => handleSelectRecord(rec)}>
-                      <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold">
-                          {rec.patientId.substring(4, 6)}
+                  {records.map((rec) => {
+                    const patientInfo = getPatientInfo(rec.patientId);
+                    return (
+                      <div key={rec.recordId} className="py-4 flex items-center justify-between hover:bg-gray-50 px-2 rounded-lg transition-colors cursor-pointer" onClick={() => handleSelectRecord(rec)}>
+                        <div className="flex items-center gap-4">
+                          <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold text-lg">
+                            {patientInfo.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-gray-900 text-lg">{patientInfo.name}</h3>
+                            <div className="flex items-center gap-4 text-sm text-gray-500">
+                              <span>ID: {rec.patientId.slice(-8)}</span>
+                              <span>•</span>
+                              <span>{new Date(rec.timestamp).toLocaleDateString()}</span>
+                              {patientInfo.profile?.age && (
+                                <>
+                                  <span>•</span>
+                                  <span>Age: {patientInfo.profile.age}</span>
+                                </>
+                              )}
+                              {patientInfo.profile?.gender && (
+                                <>
+                                  <span>•</span>
+                                  <span>{patientInfo.profile.gender === 'M' ? 'Male' : patientInfo.profile.gender === 'F' ? 'Female' : patientInfo.profile.gender}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-bold text-gray-900">Patient ID: {rec.patientId}</h3>
-                          <p className="text-sm text-gray-500">Record: {rec.recordId} • {new Date(rec.timestamp).toLocaleDateString()}</p>
+                        <div className="flex items-center gap-4">
+                          {rec.fullData?.riskFactors?.length > 0 && (
+                            <span className="px-3 py-1 bg-red-100 text-red-700 text-sm rounded-full font-medium">
+                              {rec.fullData.riskFactors.length} Risk{rec.fullData.riskFactors.length > 1 ? 's' : ''}
+                            </span>
+                          )}
+                          <Button size="sm" variant="outline" className="hover:bg-blue-50 hover:text-blue-700">
+                            Review Case
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex items-center gap-4">
-                        {rec.fullData?.riskFactors?.length > 0 && (
-                          <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full font-medium">
-                            {rec.fullData.riskFactors.length} Risks
-                          </span>
-                        )}
-                        <Button size="sm" variant="outline">Review Case</Button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </GlassCard>
@@ -193,14 +265,43 @@ const DoctorDashboard = () => {
             {/* Patient Banner */}
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8 flex items-center gap-6">
               <div className="h-16 w-16 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-2xl">
-                PT
+                {getPatientName(selectedRecord.patientId).split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
               </div>
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">Patient Analysis Record</h2>
-                <div className="flex gap-4 text-sm text-gray-500 mt-1">
-                  <span className="flex items-center gap-1"><User className="h-4 w-4" /> ID: {selectedRecord.patientId}</span>
-                  <span className="flex items-center gap-1"><Shield className="h-4 w-4" /> Rec: {selectedRecord.recordId}</span>
+              <div className="flex-1">
+                <h2 className="text-2xl font-bold text-gray-900">{getPatientName(selectedRecord.patientId)}</h2>
+                <div className="flex gap-6 text-sm text-gray-500 mt-2">
+                  <span className="flex items-center gap-1">
+                    <User className="h-4 w-4" /> 
+                    Patient ID: {selectedRecord.patientId.slice(-8)}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Shield className="h-4 w-4" /> 
+                    Record: {selectedRecord.recordId.slice(-8)}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Calendar className="h-4 w-4" /> 
+                    {new Date(selectedRecord.timestamp).toLocaleDateString()}
+                  </span>
                 </div>
+                {(() => {
+                  const patientInfo = getPatientInfo(selectedRecord.patientId);
+                  return (
+                    <div className="flex gap-6 text-sm text-gray-600 mt-2">
+                      {patientInfo.profile?.age && (
+                        <span>Age: {patientInfo.profile.age}</span>
+                      )}
+                      {patientInfo.profile?.gender && (
+                        <span>Gender: {patientInfo.profile.gender === 'M' ? 'Male' : patientInfo.profile.gender === 'F' ? 'Female' : patientInfo.profile.gender}</span>
+                      )}
+                      {patientInfo.profile?.bloodType && (
+                        <span>Blood Type: {patientInfo.profile.bloodType}</span>
+                      )}
+                      {patientInfo.email && (
+                        <span>Email: {patientInfo.email}</span>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 

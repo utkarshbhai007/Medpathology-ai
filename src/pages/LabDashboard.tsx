@@ -74,8 +74,6 @@ const LabDashboard = () => {
       // I'm assuming `fullData` in the instruction refers to `baseResult` or a similar comprehensive data object.
       // Given the instruction, I'll adapt the flow to match the new `generatePathologyReport` call.
 
-      console.log('LabDashboard: Generating analysis...');
-
       // Run Core AI Analysis and Save to Backend
       const analysisResults = await pathologyAI.generatePathologyReport(
         { patientData: patientData },
@@ -86,8 +84,6 @@ const LabDashboard = () => {
           testType: 'General Analysis'
         }
       );
-
-      console.log('LabDashboard: Analysis complete and saved', analysisResults);
 
       // Map backend report to local "Record" structure for UI
       const record = {
