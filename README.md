@@ -36,6 +36,7 @@
 - [System Architecture](#️-system-architecture)
 - [Tech Stack](#️-tech-stack)
 - [Getting Started](#-getting-started)
+- [User Guide](#-user-guide)
 - [API Reference](#-api-reference)
 - [Roadmap](#-roadmap)
 - [Team](#-team)
@@ -290,18 +291,132 @@ npm run db:seed
 ```
 
 ### 5. Launch All Services
+
+#### Quick Start (Automated)
+```bash
+# Windows
+start-dev.bat
+
+# Linux/Mac
+chmod +x start-dev.sh
+./start-dev.sh
+```
+
+#### Manual Start
 ```bash
 # Terminal 1 — Backend API
 cd backend && npm run dev
 
-# Terminal 2 — AI Services
-cd ai-services && uvicorn main:app --reload --port 8000
-
-# Terminal 3 — Frontend
-cd frontend && npm run dev
+# Terminal 2 — Frontend
+npm run dev
 ```
 
-Visit `http://localhost:3000` to access the MedGenius AI dashboard.
+Visit `http://localhost:8081` (or the port shown in terminal) to access the MedGenius AI dashboard.
+
+---
+
+## 📖 User Guide
+
+### 📚 Complete Documentation
+
+**Quick Links**:
+- 📘 **[DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md)** - Complete documentation index
+- 📗 **[USER_GUIDE.md](USER_GUIDE.md)** - Detailed user guide with workflows
+- 📙 **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** - One-page cheat sheet
+- 📊 **[FLOWCHARTS.md](FLOWCHARTS.md)** - Visual flowcharts and diagrams
+- 🔧 **[SETUP.md](SETUP.md)** - Installation and setup guide
+- 📡 **[RUNNING_SERVICES.md](RUNNING_SERVICES.md)** - Service status and management
+
+### Quick User Flows
+
+#### 🔬 Lab Administrator Flow
+```
+Login → Lab Dashboard → Upload Report → Enter Patient Info → 
+Run AI Analysis (5-10s) → Review Results → Assign to Doctor → Save
+```
+**Time**: ~2 minutes per report
+
+#### 🩺 Doctor Flow
+```
+Login → Doctor Dashboard → Select Patient → Review 5 Tabs 
+(Overview/Lab Results/Diagnosis/Risks/Medications) → 
+Create Treatment Plan → Schedule Follow-up → Approve
+```
+**Time**: ~5-10 minutes per patient
+
+#### 👤 Patient Flow
+```
+Login → Patient Portal → View Health Score → Check Reports → 
+Monitor Trends → View Medications → Download PDF → 
+Access AI Features (Biological Age/Digital Twin/Telemedicine)
+```
+**Time**: ~3-5 minutes per session
+
+### Visual System Flow
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    MEDGENIUS AI WORKFLOW                    │
+└─────────────────────────────────────────────────────────────┘
+
+    LAB ADMIN              AI SYSTEM           DOCTOR/PATIENT
+        │                      │                      │
+        │  1. Upload Report    │                      │
+        ├─────────────────────>│                      │
+        │                      │                      │
+        │                 2. Process                  │
+        │                 (5 Agents)                  │
+        │                      │                      │
+        │  3. Results Ready    │                      │
+        │<─────────────────────┤                      │
+        │                      │                      │
+        │  4. Assign Doctor    │                      │
+        ├─────────────────────>│                      │
+        │                      │  5. Notification     │
+        │                      ├─────────────────────>│
+        │                      │                      │
+        │                      │  6. Review & Approve │
+        │                      │<─────────────────────┤
+        │                      │                      │
+        │                      │  7. Patient Access   │
+        │                      ├─────────────────────>│
+```
+
+### Demo Credentials
+
+| Role | Email | Password | Dashboard |
+|------|-------|----------|-----------|
+| Lab Admin | lab@pathologyai.com | demo123 | /lab-dashboard |
+| Doctor | doctor@pathologyai.com | demo123 | /doctor-dashboard |
+| Patient | patient@pathologyai.com | demo123 | /patient-portal |
+
+### Key Features by Role
+
+**Lab Administrator**:
+- Upload and process lab reports
+- Run AI analysis (5 agents)
+- Assign reports to doctors
+- Quality control oversight
+- View all patient records
+
+**Doctor**:
+- Review assigned patient reports
+- Access AI-generated diagnoses
+- View lab results and biomarkers
+- Analyze risk assessments
+- Check medication safety
+- Create treatment plans
+
+**Patient**:
+- View personal health reports
+- Track health score trends
+- Monitor biomarker changes
+- Check medication information
+- Download PDF reports
+- Access biological age analysis
+- Real-time health monitoring
+- Digital twin simulation
+- Telemedicine consultations
 
 ---
 

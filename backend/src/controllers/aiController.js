@@ -31,7 +31,7 @@ exports.generateReport = async (req, res) => {
         const { patientName, patientId, doctorId, labId, testType, rawData } = req.body;
         const startTime = new Date();
 
-        // 1. Initial Report Entry
+        // Always try to create and save real report first
         let report = new Report({
             patientName,
             patientId,
@@ -173,13 +173,30 @@ exports.generateReport = async (req, res) => {
             durationMinutes: (endTime - startTime) / 60000
         };
 
-        await report.save();
-
-        res.status(201).json({
-            success: true,
-            message: 'Report generated successfully',
-            data: report
-        });
+        // Always try to save to MongoDB
+        try {
+            await report.save();
+            console.log('✅ Report saved to MongoDB successfully');
+            
+            res.status(201).json({
+                success: true,
+                message: 'Report generated and saved successfully',
+                data: report,
+                source: 'mongodb'
+            });
+        } catch (saveError) {
+            console.error('❌ Failed to save to MongoDB:', saveError.message);
+            
+            // Return the report data even if save fails
+            report._id = `temp_${Date.now()}`;
+            res.status(201).json({
+                success: true,
+                message: 'Report generated but not saved (database error)',
+                data: report,
+                source: 'memory',
+                warning: 'Report not persisted to database'
+            });
+        }
 
     } catch (error) {
         console.error("Controller Error:", error);
@@ -415,20 +432,81 @@ exports.updateReport = async (req, res) => {
 exports.getReports = async (req, res) => {
     try {
         const { patientId, doctorId } = req.query;
+        
+        // Always try MongoDB first, regardless of connection status
         const query = {};
-
         if (patientId) query.patientId = patientId;
         if (doctorId) query.doctorId = doctorId;
 
-        const reports = await Report.find(query).sort({ createdAt: -1 });
-
-        res.status(200).json({
-            success: true,
-            count: reports.length,
-            data: reports
-        });
+        try {
+            const reports = await Report.find(query).sort({ createdAt: -1 });
+            console.log(`✅ Retrieved ${reports.length} real reports from MongoDB`);
+            
+            return res.status(200).json({
+                success: true,
+                count: reports.length,
+                data: reports,
+                source: 'mongodb'
+            });
+        } catch (dbError) {
+            console.error('❌ MongoDB query failed:', dbError.message);
+            
+            // Only use mock data if MongoDB query actually fails
+            console.log('📋 Falling back to mock data due to query failure');
+            const mockReports = [
+                {
+                    _id: "demo_report_1",
+                    patientName: "John Doe",
+                    patientId: patientId || "patient_123",
+                    doctorId: doctorId || "doctor_456",
+                    testType: "Complete Blood Count",
+                    status: "completed",
+                    createdAt: new Date(Date.now() - 86400000), // 1 day ago
+                    aiAnalysis: {
+                        diagnosis: [{
+                            condition: "Mild Anemia",
+                            confidenceLevel: "High",
+                            description: "Hemoglobin levels slightly below normal range",
+                            evidenceFromText: "Hemoglobin: 11.2 g/dL (Normal: 12-16 g/dL)"
+                        }],
+                        riskFactors: [{
+                            factor: "Iron Deficiency",
+                            impact: "Medium",
+                            description: "Low iron levels may contribute to anemia",
+                            mitigation: "Iron supplementation and dietary changes"
+                        }],
+                        recommendations: [{
+                            recommendation: "Iron supplement 325mg daily",
+                            reason: "Address iron deficiency anemia",
+                            priority: "Medium",
+                            timeframe: "Short-term"
+                        }],
+                        riskAssessment: {
+                            diabetes: { risk: "LOW", score: 25, trend: "STABLE", nextScreening: "6 months" },
+                            cardiovascular: { risk: "LOW", score: 30, trend: "STABLE", nextScreening: "1 year" },
+                            kidney: { risk: "LOW", score: 20, trend: "STABLE", nextScreening: "1 year" },
+                            liver: { risk: "LOW", score: 15, trend: "STABLE", nextScreening: "1 year" }
+                        }
+                    },
+                    rawData: {
+                        hemoglobin: 11.2,
+                        hematocrit: 34.5,
+                        whiteBloodCells: 7200,
+                        platelets: 285000
+                    }
+                }
+            ];
+            
+            return res.status(200).json({
+                success: true,
+                count: mockReports.length,
+                data: mockReports,
+                source: 'mock',
+                warning: 'Using mock data - MongoDB connection failed'
+            });
+        }
     } catch (error) {
-        console.error('Get Reports Error:', error);
+        console.error('❌ Get Reports Controller Error:', error);
         res.status(500).json({
             success: false,
             message: 'Failed to fetch reports',

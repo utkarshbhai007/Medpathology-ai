@@ -75,33 +75,82 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Connect to MongoDB with retry logic
+// Connect to MongoDB with aggressive retry for production
+let isMongoConnected = false;
+
 const connectDB = async () => {
-  try {
-    await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      serverApi: {
-        version: '1',
-        strict: true,
-        deprecationErrors: true
+  const maxRetries = 5; // Reduce retries for faster feedback
+  let retryCount = 0;
+  
+  while (retryCount < maxRetries && !isMongoConnected) {
+    try {
+      console.log(`🔄 MongoDB connection attempt ${retryCount + 1}/${maxRetries}`);
+      console.log(`📡 Connecting to: ${process.env.MONGODB_URI.replace(/\/\/.*:.*@/, '//***:***@')}`);
+      
+      await mongoose.connect(process.env.MONGODB_URI, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        serverSelectionTimeoutMS: 15000, // Reduce timeout for faster feedback
+        connectTimeoutMS: 15000,
+        socketTimeoutMS: 20000,
+      });
+      
+      console.log('✅ Connected to MongoDB Atlas');
+      console.log('📊 Database:', mongoose.connection.name);
+      console.log('🌐 Host:', mongoose.connection.host);
+      console.log('📈 Ready state:', mongoose.connection.readyState);
+      isMongoConnected = true;
+      return;
+    } catch (error) {
+      retryCount++;
+      console.error(`❌ MongoDB connection attempt ${retryCount}/${maxRetries} failed:`);
+      console.error(`   Error: ${error.message}`);
+      
+      // Specific error diagnostics
+      if (error.message.includes('ENOTFOUND')) {
+        console.log('🔍 DNS Resolution failed - check cluster URL');
+      } else if (error.message.includes('authentication')) {
+        console.log('🔍 Authentication failed - check username/password');
+      } else if (error.message.includes('timeout')) {
+        console.log('🔍 Connection timeout - check network/firewall');
       }
-    });
-    console.log('Connected to MongoDB Atlas');
-    console.log('Database:', mongoose.connection.name);
-    console.log('Host:', mongoose.connection.host);
-  } catch (error) {
-    console.error('MongoDB connection error:', error);
-    // Retry connection after 5 seconds
-    setTimeout(connectDB, 5000);
+      
+      if (retryCount < maxRetries) {
+        console.log(`⏳ Retrying in 3 seconds...`);
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      } else {
+        console.error('💥 All MongoDB connection attempts failed');
+        console.log('🔧 Troubleshooting checklist:');
+        console.log('   ✓ MongoDB Atlas cluster is running (not paused)');
+        console.log('   ✓ IP address 0.0.0.0/0 is whitelisted');
+        console.log('   ✓ Username: med');
+        console.log('   ✓ Password: Barad@2005');
+        console.log('   ✓ Database: medgenius');
+        console.log('   ✓ Network connectivity');
+        isMongoConnected = false;
+      }
+    }
   }
 };
 
-// Start server only after DB connection
+// Middleware to check MongoDB status
+app.use((req, res, next) => {
+  req.isMongoConnected = isMongoConnected;
+  next();
+});
+
+// Start server and connect to MongoDB
 const PORT = process.env.PORT || 5000;
+
+// Connect to MongoDB with retries
 connectDB().then(() => {
   app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`🚀 Server running on port ${PORT}`);
+    if (isMongoConnected) {
+      console.log('💾 Using real MongoDB data');
+    } else {
+      console.log('⚠️  MongoDB connection failed - check configuration');
+    }
   }).on('error', (error) => {
     console.error('Server error:', error);
   });
